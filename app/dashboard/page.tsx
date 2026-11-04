@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Icons } from "@/components/icons";
 import { Notice } from "@/components/notice";
 import { ApplicationStatusBadge, BookingStatusBadge } from "@/components/status";
 import { requireUser } from "@/lib/auth";
@@ -60,7 +61,66 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   return (
     <>
       <Notice code={notice} />
-      <h1>{firstName ? `Welcome, ${firstName}` : "Your dashboard"}</h1>
+      <div className="welcome">
+        <div>
+          <p className="eyebrow">Dashboard</p>
+          <h1>{firstName ? `Welcome back, ${firstName}` : "Your dashboard"}</h1>
+        </div>
+        {isFounder ? (
+          <Link href="/experts" className="btn btn-primary">
+            <Icons.calendar /> Book an expert
+          </Link>
+        ) : null}
+      </div>
+
+      {isFounder ? (
+        <ul className="quick-actions" aria-label="Quick actions">
+          <li>
+            <Link href="/experts">
+              <span className="path-icon">
+                <Icons.calendar />
+              </span>
+              <span>
+                Book a session
+                <small>Mentors and college experts</small>
+              </span>
+            </Link>
+          </li>
+          <li>
+            <Link href="/centres">
+              <span className="path-icon warm">
+                <Icons.building />
+              </span>
+              <span>
+                Find a centre
+                <small>{startup ? "See your best matches" : "Browse all centres"}</small>
+              </span>
+            </Link>
+          </li>
+          <li>
+            <Link href="/venture">
+              <span className="path-icon">
+                <Icons.briefcase />
+              </span>
+              <span>
+                Venture profile
+                <small>{!startup ? "Not started" : gaps.length ? `${gaps.length} ${gaps.length === 1 ? "detail" : "details"} to add` : "Complete"}</small>
+              </span>
+            </Link>
+          </li>
+          <li>
+            <Link href="/messages">
+              <span className="path-icon warm">
+                <Icons.chat />
+              </span>
+              <span>
+                Messages
+                <small>{unreadThreads.length ? `${unreadThreads.length} unread` : "All caught up"}</small>
+              </span>
+            </Link>
+          </li>
+        </ul>
+      ) : null}
 
       {invitations && invitations.length ? (
         <section className="card highlight" aria-labelledby="invites">
@@ -120,10 +180,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </h2>
             {!startup ? (
               <>
-                <p>Start your venture profile. It saves as a draft, so you can finish it in several sittings.</p>
-                <Link href="/venture" className="btn btn-primary">
-                  Start your profile
-                </Link>
+                <p>
+                  You don&apos;t need a profile to book an expert. To apply to incubation centres, start your venture profile: it
+                  saves as a draft, so you can finish it over several sittings.
+                </p>
+                <div className="actions">
+                  <Link href="/venture" className="btn btn-primary">
+                    Start your profile
+                  </Link>
+                  <Link href="/experts" className="btn btn-secondary">
+                    Book an expert first
+                  </Link>
+                </div>
               </>
             ) : gaps.length ? (
               <>

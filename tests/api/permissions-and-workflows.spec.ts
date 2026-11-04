@@ -262,6 +262,8 @@ test("a linked expert sees the startup behind their own requests, but not other 
 
 test("centre staff can't change admin-only fields such as the centre's status", async () => {
   await expectError(staff.client.from("incubation_centers").update({ status: "suspended" }).eq("id", centre.id), "admin_only_fields");
+  // Where a listing comes from is set by the master admin only.
+  await expectError(staff.client.from("incubation_centers").update({ source_label: "Our own claim" }).eq("id", centre.id), "admin_only_fields");
   const { error } = await staff.client.from("incubation_centers").update({ short_description: "Updated by staff" }).eq("id", centre.id);
   expect(error).toBeNull();
   // Staff of another centre can't edit this one at all.
@@ -321,4 +323,24 @@ test("roles can't be granted through the API", async () => {
   expect(rpcError).not.toBeNull();
   const { error: profileError } = await founderA.client.from("profiles").update({ is_suspended: false }).eq("id", founderA.userId);
   expect(profileError).not.toBeNull();
+});
+
+test("visitors can see open times and the expert directory, but not who booked what", async () => {
+  const anon = anonClient();
+  const { data: directory, error } = await anon.rpc("expert_directory");
+  expect(error).toBeNull();
+  expect((directory ?? []).length).toBeGreaterThan(0);
+  const withSlots = (directory ?? []).find((e) => e.next_slot_at);
+  expect(withSlots).toBeTruthy();
+  const { data: slots, error: slotError } = await anon.rpc("available_slots", { p_expert_id: withSlots!.id });
+  expect(slotError).toBeNull();
+  expect(Object.keys(slots?.[0] ?? {}).sort()).toEqual(["ends_at", "id", "starts_at"]);
+  // Raw slot and booking tables stay closed to visitors.
+  const { data: rawSlots } = await anon.from("availability_slots").select("id").limit(1);
+  expect(rawSlots ?? []).toHaveLength(0);
+  const { data: rawBookings } = await anon.from("consultation_bookings").select("id").limit(1);
+  expect(rawBookings ?? []).toHaveLength(0);
+  // Booking itself still needs an account.
+  const { error: bookError } = await anon.rpc("request_booking", { p_slot_id: slots![0].id, p_format: "online" });
+  expect(bookError).not.toBeNull();
 });

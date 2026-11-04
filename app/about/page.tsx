@@ -17,10 +17,10 @@ export default function AboutPage() {
         <li>Founders build one venture profile and can apply to as many centres as they like.</li>
         <li>We suggest centres that fit your stage, sector and support needs, and explain why. We never assign you to a centre.</li>
         <li>Every centre can find registered startups and start a private conversation. Your email and phone stay private unless you choose to share them.</li>
-        <li>Centres list mentors and paid college experts. You can request a session; the expert confirms it.</li>
+        <li>Centres list mentors and paid college experts. You pick an open time and send a request; the expert confirms it.</li>
       </ul>
 
-      <h2>What UdyamSetu does not do</h2>
+      <h2 id="privacy">What UdyamSetu does not do</h2>
       <ul>
         <li>It is not a government portal and is not operated by any government scheme or mission.</li>
         <li>It does not promise funding, grants or admission. Each centre makes its own admission decisions.</li>
@@ -28,15 +28,16 @@ export default function AboutPage() {
         <li>It does not check domicile documents. You self-declare domicile when you register; proof may be asked for later by a funding body, outside UdyamSetu.</li>
       </ul>
 
-      <h2>Sample listings</h2>
+      <h2 id="centres">Where the centre list comes from</h2>
       <p>
-        Centres marked <span className="badge badge-sample">Sample listing</span> are fictional examples used to
-        demonstrate the platform. They are not real organisations.
+        The incubation centres listed are the ones named in public reports as part of the Mission YUVA incubation
+        network in Jammu and Kashmir. Each centre&apos;s page links to its source. Listing a centre doesn&apos;t mean it has
+        partnered with UdyamSetu: centres open applications here once their own staff join.
       </p>
 
       <p className="actions">
         <Link href="/register" className="btn btn-primary">
-          Register as a founder
+          Create a free account
         </Link>
         <Link href="/centres" className="btn btn-secondary">
           Browse centres

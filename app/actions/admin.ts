@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
-import { readCentreForm, saveCentreLinks } from "@/lib/centre-form";
+import { readCentreForm, readCentreSource, saveCentreLinks } from "@/lib/centre-form";
 import { env } from "@/lib/env";
 import { errorCode, friendlyError } from "@/lib/errors";
 import { inviteSchema, slugify, slugSchema, taxonomySchema, toFieldErrors } from "@/lib/validation";
@@ -24,10 +24,12 @@ export async function createCentre(_prev: FormState, formData: FormData): Promis
     };
   }
   const { stage_ids, sector_ids, service_ids, ...fields } = parsed.data;
+  const source = readCentreSource(formData);
+  if (source.error) return { fieldErrors: source.error, values, multi };
   const { supabase, user } = await requireAdmin("/admin/centres/new");
   const { data, error } = await supabase
     .from("incubation_centers")
-    .insert({ ...fields, slug: slug.data, is_sample: checked(formData, "is_sample"), created_by: user.id })
+    .insert({ ...fields, ...source.fields, slug: slug.data, is_sample: checked(formData, "is_sample"), created_by: user.id })
     .select("id")
     .single();
   if (error || !data) {

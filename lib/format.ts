@@ -56,3 +56,27 @@ export function initials(name: string | null | undefined) {
     .map((part) => part[0]?.toUpperCase())
     .join("");
 }
+
+// The calendar day (India time) a moment falls on, as YYYY-MM-DD.
+export function istDayKey(value: string | Date) {
+  const date = typeof value === "string" ? new Date(value) : value;
+  return new Date(date.getTime() + 5.5 * 3_600_000).toISOString().slice(0, 10);
+}
+
+export function formatTime(value: string) {
+  return new Date(value).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", timeZone: TIME_ZONE });
+}
+
+// "Today, 3:00 pm", "Tomorrow, 10:00 am" or "Thu 6 Nov, 10:00 am".
+export function formatSlotShort(value: string, now = new Date()) {
+  const key = istDayKey(value);
+  const today = istDayKey(now);
+  const tomorrow = istDayKey(new Date(now.getTime() + 86_400_000));
+  const day =
+    key === today
+      ? "Today"
+      : key === tomorrow
+        ? "Tomorrow"
+        : new Date(value).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: TIME_ZONE });
+  return `${day}, ${formatTime(value)}`;
+}

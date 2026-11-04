@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { formatInr } from "@/lib/format";
+import { Icons } from "@/components/icons";
+import { SampleBadge } from "@/components/status";
+import { formatInr, formatSlotShort, initials } from "@/lib/format";
 import { ENGAGEMENT_POLICIES, labelFor } from "@/lib/options";
 import type { EngagementPolicy } from "@/lib/types";
 
@@ -27,38 +29,99 @@ export function feeLabel(expert: Pick<ExpertSummary, "is_paid" | "fee_inr" | "se
   return expert.is_paid ? `${formatInr(expert.fee_inr)} for ${expert.session_minutes} min` : `Free mentorship · ${expert.session_minutes} min`;
 }
 
-export function ExpertCard({ expert, href }: { expert: ExpertSummary; href?: string }) {
+export function Price({ expert }: { expert: Pick<ExpertSummary, "is_paid" | "fee_inr" | "session_minutes"> }) {
   return (
-    <li className="card">
-      <div className="card-head">
-        <h3>
-          <Link href={href ?? `/experts/${expert.id}`}>{expert.full_name}</Link>
-        </h3>
-        <span className={`badge ${expert.is_paid ? "badge-warn" : "badge-live"}`}>{expert.is_paid ? "Paid consulting" : "Free mentorship"}</span>
+    <span>
+      <span className={`price${expert.is_paid ? "" : " price-free"}`}>{expert.is_paid ? formatInr(expert.fee_inr) : "Free"}</span>
+      <span className="muted small"> / {expert.session_minutes} min</span>
+    </span>
+  );
+}
+
+export function NextSlot({ at, count }: { at: string | null; count?: number }) {
+  if (!at) {
+    return (
+      <p className="next-slot none">
+        <Icons.clock /> No open times yet
+      </p>
+    );
+  }
+  return (
+    <p className="next-slot">
+      <span className="pulse" aria-hidden="true" />
+      <span>
+        Next: {formatSlotShort(at)}
+        {count ? <span className="muted small"> · {count} open in 2 weeks</span> : null}
+      </span>
+    </p>
+  );
+}
+
+// One expert in a list. With `centre` and `nextSlotAt` it becomes the directory card.
+export function ExpertCard({
+  expert,
+  href,
+  centre,
+  nextSlotAt,
+  openCount,
+}: {
+  expert: ExpertSummary;
+  href?: string;
+  centre?: { name: string; slug: string; isSample?: boolean };
+  nextSlotAt?: string | null;
+  openCount?: number;
+}) {
+  const link = href ?? `/experts/${expert.id}`;
+  return (
+    <li className="card card-hover expert-card">
+      <div className="expert-top">
+        <span className="avatar avatar-lg" aria-hidden="true">
+          {initials(expert.full_name)}
+        </span>
+        <div className="grow">
+          <h3>
+            <Link href={link} className="stretched">
+              {expert.full_name}
+            </Link>
+          </h3>
+          <p className="muted small">{[expert.headline, expert.organization].filter(Boolean).join(" · ")}</p>
+          {centre ? (
+            <p className="meta-line" style={{ marginTop: 4 }}>
+              <span>
+                <Icons.building /> {centre.name}
+              </span>
+              <SampleBadge show={Boolean(centre.isSample)} />
+            </p>
+          ) : null}
+        </div>
       </div>
-      <p className="muted small">{[expert.headline, expert.organization].filter(Boolean).join(" · ")}</p>
       {expert.expertise_tags.length ? (
         <p className="tags">
-          {expert.expertise_tags.map((tag) => (
+          {expert.expertise_tags.slice(0, 4).map((tag) => (
             <span className="badge badge-quiet" key={tag}>
               {tag}
             </span>
           ))}
+          {expert.expertise_tags.length > 4 ? <span className="badge badge-quiet">+{expert.expertise_tags.length - 4}</span> : null}
         </p>
       ) : null}
-      <dl className="mini-facts">
-        <div>
-          <dt>Sessions</dt>
-          <dd>
-            {formatsLabel(expert)} · {feeLabel(expert)}
-          </dd>
-        </div>
-        <div>
-          <dt>Who can book</dt>
-          <dd>{labelFor(ENGAGEMENT_POLICIES, expert.engagement_policy)}</dd>
-        </div>
-      </dl>
-      {expert.is_active === false ? <p className="badge badge-quiet">Inactive</p> : null}
+      <p className="meta-line">
+        <span>{expert.offers_online ? <Icons.video /> : <Icons.pin />} {formatsLabel(expert)}</span>
+        {expert.engagement_policy !== "both" ? <span>{labelFor(ENGAGEMENT_POLICIES, expert.engagement_policy)}</span> : null}
+      </p>
+      {nextSlotAt !== undefined ? <NextSlot at={nextSlotAt} count={openCount} /> : null}
+      <div className="card-footer">
+        <Price expert={expert} />
+        {expert.is_active === false ? (
+          <span className="badge badge-quiet">Inactive</span>
+        ) : (
+          <span className="card-actions">
+            <Link href={link} className="btn btn-primary btn-small">
+              {nextSlotAt ? "Book a time" : nextSlotAt === undefined ? "See times" : "View profile"}
+            </Link>
+          </span>
+        )}
+      </div>
     </li>
   );
 }

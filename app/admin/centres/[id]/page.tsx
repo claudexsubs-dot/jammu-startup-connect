@@ -121,7 +121,10 @@ export default async function AdminCentrePage({ params, searchParams }: { params
                 sector_ids: centre.center_sectors.map((s) => s.sector_id),
                 service_ids: centre.center_services.map((s) => s.support_need_id),
               }}
-            />
+            >
+              <Field name="source_label" label="Listing source" defaultValue={centre.source_label} hint="Optional. Where this centre is publicly listed, for example a report naming it as a Mission YUVA incubation centre. Shown on the centre page." />
+              <Field name="source_url" label="Source link" type="url" defaultValue={centre.source_url} placeholder="https://" />
+            </CentreProfileForm>
           </details>
         </div>
 

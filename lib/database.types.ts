@@ -282,14 +282,14 @@ isOneToOne: true
                   ]
                 },"incubation_centers": {
                   Row: {
-                    "accepting_applications": boolean,"address": string | null,"application_guidance": string | null,"applications_close_on": string | null,"city": string | null,"created_at": string,"created_by": string | null,"description": string | null,"district": string | null,"host_institution": string | null,"id": string,"is_sample": boolean,"name": string,"public_email": string | null,"short_description": string | null,"slug": string,"status": Database["public"]['Enums']["center_status"],"status_reason": string | null,"updated_at": string,"website": string | null
+                    "accepting_applications": boolean,"address": string | null,"application_guidance": string | null,"applications_close_on": string | null,"city": string | null,"created_at": string,"created_by": string | null,"description": string | null,"district": string | null,"host_institution": string | null,"id": string,"is_sample": boolean,"name": string,"public_email": string | null,"short_description": string | null,"slug": string,"source_label": string | null,"source_url": string | null,"status": Database["public"]['Enums']["center_status"],"status_reason": string | null,"updated_at": string,"website": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "accepting_applications"?: boolean,"address"?: string | null,"application_guidance"?: string | null,"applications_close_on"?: string | null,"city"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"district"?: string | null,"host_institution"?: string | null,"id"?: string,"is_sample"?: boolean,"name": string,"public_email"?: string | null,"short_description"?: string | null,"slug": string,"status"?: Database["public"]['Enums']["center_status"],"status_reason"?: string | null,"updated_at"?: string,"website"?: string | null
+                    "accepting_applications"?: boolean,"address"?: string | null,"application_guidance"?: string | null,"applications_close_on"?: string | null,"city"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"district"?: string | null,"host_institution"?: string | null,"id"?: string,"is_sample"?: boolean,"name": string,"public_email"?: string | null,"short_description"?: string | null,"slug": string,"source_label"?: string | null,"source_url"?: string | null,"status"?: Database["public"]['Enums']["center_status"],"status_reason"?: string | null,"updated_at"?: string,"website"?: string | null
                   }
                   Update: {
-                    "accepting_applications"?: boolean,"address"?: string | null,"application_guidance"?: string | null,"applications_close_on"?: string | null,"city"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"district"?: string | null,"host_institution"?: string | null,"id"?: string,"is_sample"?: boolean,"name"?: string,"public_email"?: string | null,"short_description"?: string | null,"slug"?: string,"status"?: Database["public"]['Enums']["center_status"],"status_reason"?: string | null,"updated_at"?: string,"website"?: string | null
+                    "accepting_applications"?: boolean,"address"?: string | null,"application_guidance"?: string | null,"applications_close_on"?: string | null,"city"?: string | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"district"?: string | null,"host_institution"?: string | null,"id"?: string,"is_sample"?: boolean,"name"?: string,"public_email"?: string | null,"short_description"?: string | null,"slug"?: string,"source_label"?: string | null,"source_url"?: string | null,"status"?: Database["public"]['Enums']["center_status"],"status_reason"?: string | null,"updated_at"?: string,"website"?: string | null
                   }
                   Relationships: [
                     
@@ -715,6 +715,11 @@ isOneToOne: false
                            },
 "change_application_status":
 { Args: { "p_application_id": string,"p_note"?: string,"p_status": Database["public"]['Enums']["application_status"] }; Returns: undefined
+                           },
+"expert_directory":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "center_district": string,"center_id": string,"center_is_sample": boolean,"center_name": string,"center_slug": string,"engagement_policy": Database["public"]['Enums']["engagement_policy"],"expertise_tags": (string)[],"fee_inr": number,"full_name": string,"headline": string,"id": string,"is_paid": boolean,"next_slot_at": string,"offers_in_person": boolean,"offers_online": boolean,"open_slots_14d": number,"organization": string,"session_minutes": number
+            }[]
                            },
 "founder_update_booking":
 { Args: { "p_action": string,"p_booking_id": string,"p_note"?: string }; Returns: undefined

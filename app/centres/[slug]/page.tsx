@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExpertCard } from "@/components/experts/expert-card";
+import { centreInitials } from "@/components/centres/centre-card";
 import { ExternalLink } from "@/components/external-link";
+import { Icons } from "@/components/icons";
 import { ApplicationStatusBadge, CentreStatusBadge, SampleBadge } from "@/components/status";
 import { getViewer } from "@/lib/auth";
 import { isOpenForApplications } from "@/lib/directory";
 import { formatDate } from "@/lib/format";
+import { regionOf } from "@/lib/options";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -29,6 +32,8 @@ export default async function CentrePage({ params }: { params: Promise<{ slug: s
   if (!centre || centre.status === "archived") notFound();
 
   const experts = centre.center_experts.filter((e) => e.is_active);
+  const { data: directory } = experts.length ? await supabase.rpc("expert_directory") : { data: [] };
+  const nextSlots = new Map((directory ?? []).filter((d) => d.center_id === centre.id).map((d) => [d.id, d]));
   const stages = centre.center_stages.flatMap((s) => (s.startup_stages ? [s.startup_stages] : [])).sort((a, b) => a.sort_order - b.sort_order);
   const sectors = centre.center_sectors.flatMap((s) => (s.sectors ? [s.sectors.name] : [])).sort();
   const services = centre.center_services.flatMap((s) => (s.support_needs ? [s.support_needs] : [])).sort((a, b) => a.sort_order - b.sort_order);
@@ -43,14 +48,35 @@ export default async function CentrePage({ params }: { params: Promise<{ slug: s
   return (
     <article>
       <p className="breadcrumbs">
-        <Link href="/centres">All centres</Link>
+        <Link href="/centres">
+          <Icons.back /> All centres
+        </Link>
       </p>
-      <div className="section-head">
-        <h1>{centre.name}</h1>
-        <p className="tags">
-          <SampleBadge show={centre.is_sample} />
-          <CentreStatusBadge status={centre.status} />
-        </p>
+      <div className="profile-hero">
+        <span className="centre-logo centre-logo-lg" aria-hidden="true">
+          {centreInitials(centre.name)}
+        </span>
+        <div className="grow">
+          <h1>{centre.name}</h1>
+          <p className="meta-line">
+            {centre.host_institution ? (
+              <span>
+                <Icons.building /> {centre.host_institution}
+              </span>
+            ) : null}
+            <span>
+              <Icons.pin /> {[centre.city, centre.district !== centre.city ? centre.district : null].filter(Boolean).join(", ") || "Location not listed"}
+            </span>
+            {regionOf(centre.district) ? <span className="badge badge-quiet">{regionOf(centre.district)}</span> : null}
+            <SampleBadge show={centre.is_sample} />
+            <CentreStatusBadge status={centre.status} />
+          </p>
+        </div>
+        {experts.length ? (
+          <a href="#experts" className="btn btn-secondary">
+            <Icons.calendar /> Book an expert here
+          </a>
+        ) : null}
       </div>
       {centre.is_sample ? (
         <p className="alert alert-info">This is a fictional sample listing used to demonstrate UdyamSetu. It is not a real organisation.</p>
@@ -63,6 +89,16 @@ export default async function CentrePage({ params }: { params: Promise<{ slug: s
         <div>
           {centre.short_description ? <p className="lead">{centre.short_description}</p> : null}
           {centre.description ? <p className="pre-line">{centre.description}</p> : null}
+          {centre.source_label || centre.source_url ? (
+            <p className="source-note">
+              <Icons.link />
+              <span>
+                <strong>Listing source:</strong>{" "}
+                {centre.source_url ? <ExternalLink href={centre.source_url}>{centre.source_label ?? "Public source"}</ExternalLink> : centre.source_label}. UdyamSetu is
+                independent and lists this centre for founders&apos; convenience; it doesn&apos;t claim any partnership.
+              </span>
+            </p>
+          ) : null}
 
           <h2>Support offered</h2>
           {services.length ? (
@@ -80,11 +116,11 @@ export default async function CentrePage({ params }: { params: Promise<{ slug: s
           <h2>How to apply</h2>
           <p className="pre-line">{centre.application_guidance ?? "The centre hasn't added guidance yet. Complete your venture profile and tell them why you'd like to join."}</p>
 
-          <h2>Mentors and experts</h2>
+          <h2 id="experts">Mentors and experts</h2>
           {experts.length ? (
             <ul className="card-grid">
               {experts.map((e) => (
-                <ExpertCard key={e.id} expert={e} />
+                <ExpertCard key={e.id} expert={e} nextSlotAt={nextSlots.get(e.id)?.next_slot_at ?? null} openCount={nextSlots.get(e.id)?.open_slots_14d} />
               ))}
             </ul>
           ) : (
@@ -114,23 +150,38 @@ export default async function CentrePage({ params }: { params: Promise<{ slug: s
                 </Link>
               </>
             ) : (
-              <p>
-                <strong>Not accepting applications right now.</strong> You can still browse its mentors.
-              </p>
+              <>
+                <p>
+                  <strong>Applications aren&apos;t open on UdyamSetu yet.</strong>
+                </p>
+                <p className="muted small">
+                  {centre.website ? "You can contact the centre through its website. " : ""}Get your venture profile ready so you can apply in one click once it opens.
+                </p>
+                <div className="stack-tight">
+                  {centre.website ? (
+                    <ExternalLink href={centre.website}>
+                      <span className="btn btn-secondary btn-block">Visit the centre&apos;s website</span>
+                    </ExternalLink>
+                  ) : null}
+                  <Link href={user ? "/venture" : `/register?next=/centres/${centre.slug}`} className="btn btn-primary btn-block">
+                    {user ? "Prepare your venture profile" : "Create a free account"}
+                  </Link>
+                </div>
+              </>
             )}
           </div>
           <dl className="details stacked">
             <div>
               <dt>Stages supported</dt>
-              <dd>{stages.length ? stages.map((s) => s.name).join(", ") : "Not listed"}</dd>
+              <dd>{stages.length ? stages.map((s) => s.name).join(", ") : "Not listed yet"}</dd>
             </div>
             <div>
               <dt>Sectors</dt>
-              <dd>{sectors.length ? sectors.join(", ") : "All sectors"}</dd>
+              <dd>{sectors.length ? sectors.join(", ") : "Not listed yet"}</dd>
             </div>
             <div>
               <dt>Location</dt>
-              <dd>{[centre.address, centre.city, centre.district].filter(Boolean).join(", ") || "Not listed"}</dd>
+              <dd>{[...new Set([centre.address, centre.city, centre.district].filter(Boolean))].join(", ") || "Not listed"}</dd>
             </div>
             {centre.host_institution ? (
               <div>
