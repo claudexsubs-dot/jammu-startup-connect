@@ -5,15 +5,20 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 import { safeNext } from "@/lib/auth";
-import { emailSchema, loginSchema, newPasswordSchema, registerSchema, toFieldErrors } from "@/lib/validation";
+import { emailSchema, inviteeRegisterSchema, loginSchema, newPasswordSchema, registerSchema, toFieldErrors } from "@/lib/validation";
 import { formValues, type FormState } from "./types";
 
 export async function register(_prev: FormState, formData: FormData): Promise<FormState> {
   const values = formValues(formData, ["password"]);
   const parsed = registerSchema.safeParse({
-    fullName: formData.get("fullName"),
-    email: formData.get("email"),
-    password: formData.get("password"),
+    fullName: formData.get("fullName") ?? "",
+    email: formData.get("email") ?? "",
+    password: formData.get("password") ?? "",
+    phone: formData.get("phone") ?? "",
+    district: formData.get("district") ?? "",
+    city: formData.get("city") ?? "",
+    domicile: formData.get("domicile") === "on",
+    consent: formData.get("consent") === "on",
   });
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error), values };
 
@@ -22,8 +27,17 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      data: { full_name: parsed.data.fullName },
-      emailRedirectTo: `${env.siteUrl}/auth/callback?next=/dashboard`,
+      // The database turns these into the founder profile. Domicile is self-declared and not verified here.
+      data: {
+        full_name: parsed.data.fullName,
+        account_type: "founder",
+        phone: parsed.data.phone ?? "",
+        district: parsed.data.district,
+        city: parsed.data.city ?? "",
+        domicile_declared: "true",
+        consent_given: "true",
+      },
+      emailRedirectTo: `${env.siteUrl}/auth/callback?next=/venture`,
     },
   });
 
@@ -32,17 +46,45 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
   // With email confirmation on, Supabase returns no session until the link is clicked.
   if (!data.session) {
     return {
-      success: `Almost done. We sent a confirmation link to ${parsed.data.email}. Open it to activate your account.`,
+      success: `Almost done. We sent a confirmation link to ${parsed.data.email}. Open it to activate your account, then complete your venture profile.`,
     };
   }
 
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  redirect("/venture");
+}
+
+// Registration for people invited as centre staff or experts. They don't get a founder profile.
+export async function registerInvitee(token: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const values = formValues(formData, ["password"]);
+  const parsed = inviteeRegisterSchema.safeParse({
+    fullName: formData.get("fullName") ?? "",
+    email: formData.get("email") ?? "",
+    password: formData.get("password") ?? "",
+  });
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error), values };
+
+  const next = `/invite/${encodeURIComponent(token)}`;
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    options: {
+      data: { full_name: parsed.data.fullName, account_type: "invitee" },
+      emailRedirectTo: `${env.siteUrl}/auth/callback?next=${encodeURIComponent(next)}`,
+    },
+  });
+  if (error) return { error: friendlyAuthError(error.message), values };
+  if (!data.session) {
+    return { success: `We sent a confirmation link to ${parsed.data.email}. Open it to finish accepting your invitation.` };
+  }
+  revalidatePath("/", "layout");
+  redirect(next);
 }
 
 export async function login(_prev: FormState, formData: FormData): Promise<FormState> {
   const values = formValues(formData, ["password"]);
-  const parsed = loginSchema.safeParse({ email: formData.get("email"), password: formData.get("password") });
+  const parsed = loginSchema.safeParse({ email: formData.get("email") ?? "", password: formData.get("password") ?? "" });
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error), values };
 
   const supabase = await createClient();
@@ -62,7 +104,7 @@ export async function logout() {
 
 export async function requestPasswordReset(_prev: FormState, formData: FormData): Promise<FormState> {
   const values = formValues(formData);
-  const parsed = emailSchema.safeParse({ email: formData.get("email") });
+  const parsed = emailSchema.safeParse({ email: formData.get("email") ?? "" });
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error), values };
 
   const supabase = await createClient();
@@ -77,7 +119,7 @@ export async function requestPasswordReset(_prev: FormState, formData: FormData)
 }
 
 export async function updatePassword(_prev: FormState, formData: FormData): Promise<FormState> {
-  const parsed = newPasswordSchema.safeParse({ password: formData.get("password"), confirm: formData.get("confirm") });
+  const parsed = newPasswordSchema.safeParse({ password: formData.get("password") ?? "", confirm: formData.get("confirm") ?? "" });
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error) };
 
   const supabase = await createClient();

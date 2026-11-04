@@ -1,53 +1,69 @@
 import Link from "next/link";
-import { StartupCard } from "@/components/startups/startup-card";
-import { createClient } from "@/lib/supabase/server";
+import { getViewer } from "@/lib/auth";
+import { loadActiveCentres } from "@/lib/directory";
 
 export default async function HomePage() {
-  const supabase = await createClient();
-  const [{ data: startups, error }, { count }] = await Promise.all([
-    supabase
-      .from("startups")
-      .select("id, name, description, stage, district, sectors(name)")
-      .eq("is_published", true)
-      .order("created_at", { ascending: false })
-      .limit(6),
-    supabase.from("startups").select("id", { count: "exact", head: true }).eq("is_published", true),
-  ]);
+  const { supabase, user } = await getViewer();
+  let centreCount = 0;
+  try {
+    centreCount = (await loadActiveCentres(supabase)).length;
+  } catch {
+    centreCount = 0;
+  }
 
   return (
     <>
       <section className="hero">
-        <h1>Where Jammu&apos;s startups grow</h1>
+        <p className="eyebrow">For startup founders domiciled in Jammu</p>
+        <h1>Find the right incubation centre for your startup</h1>
         <p className="lead">
-          Create your startup profile, track your progress, and get ready to connect with incubation centres and
-          mentors across the Jammu division.
+          Build one venture profile, see which centres fit your stage and sector, apply to as many as you like, and
+          book time with mentors and college experts.
         </p>
         <div className="actions">
-          <Link href="/register" className="btn btn-primary">
-            Register your startup
-          </Link>
-          <Link href="/startups" className="btn btn-secondary">
-            Browse startups
+          {user ? (
+            <Link href="/dashboard" className="btn btn-primary">
+              Go to your dashboard
+            </Link>
+          ) : (
+            <Link href="/register" className="btn btn-primary">
+              Register as a founder
+            </Link>
+          )}
+          <Link href="/centres" className="btn btn-secondary">
+            Browse {centreCount ? `${centreCount} ` : ""}centres
           </Link>
         </div>
       </section>
 
-      <section aria-labelledby="recent">
-        <div className="section-head">
-          <h2 id="recent">Recently listed</h2>
-          {count ? <Link href="/startups">See all {count}</Link> : null}
-        </div>
-        {error ? (
-          <p className="alert alert-error">We couldn&apos;t load startups right now. Please refresh the page.</p>
-        ) : startups && startups.length > 0 ? (
-          <ul className="card-grid">
-            {startups.map((startup) => (
-              <StartupCard key={startup.id} startup={startup} />
-            ))}
-          </ul>
-        ) : (
-          <p className="empty">No startups have published a profile yet. Be the first to register yours.</p>
-        )}
+      <section aria-labelledby="how" className="steps-section">
+        <h2 id="how">How it works</h2>
+        <ol className="steps">
+          <li>
+            <h3>Build your venture profile</h3>
+            <p>Save it as a draft and come back any time. We tell you exactly what&apos;s missing before you apply.</p>
+          </li>
+          <li>
+            <h3>See your best-fit centres</h3>
+            <p>Recommendations explain why each centre fits. You can still browse, compare and apply to any centre.</p>
+          </li>
+          <li>
+            <h3>Apply and track</h3>
+            <p>Each application has its own status and history. Centres can ask for more information instead of saying no.</p>
+          </li>
+          <li>
+            <h3>Talk to mentors and experts</h3>
+            <p>Request a session online or in person. Paid experts confirm once you&apos;ve paid them directly.</p>
+          </li>
+        </ol>
+      </section>
+
+      <section className="callout" aria-labelledby="independent">
+        <h2 id="independent">An independent platform</h2>
+        <p>
+          UdyamSetu is not a government portal. It doesn&apos;t decide admissions or funding, and it never takes payments.
+          Your email and phone stay private unless you choose to share them. <Link href="/about">Read more</Link>
+        </p>
       </section>
     </>
   );

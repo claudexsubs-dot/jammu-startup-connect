@@ -4,9 +4,9 @@ export default function NotFound() {
   return (
     <section className="narrow">
       <h1>Page not found</h1>
-      <p>This page doesn&apos;t exist, or it&apos;s a startup profile that hasn&apos;t been published.</p>
+      <p>This page doesn&apos;t exist, or you don&apos;t have access to it.</p>
       <p>
-        <Link href="/startups">Browse startups</Link>
+        <Link href="/centres">Browse incubation centres</Link> · <Link href="/dashboard">Go to your dashboard</Link>
       </p>
     </section>
   );
