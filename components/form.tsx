@@ -11,6 +11,11 @@ function useFieldState(state?: FormState) {
   return state ?? fromContext;
 }
 
+// The state of the surrounding ActionForm, for custom fields.
+export function useActionFormState() {
+  return useContext(FormStateContext);
+}
+
 type Action = (state: FormState, formData: FormData) => Promise<FormState>;
 
 // A form wired to a server action. Fields inside it show that action's errors.

@@ -41,7 +41,7 @@ Key rules, all enforced in the database (not just the pages):
 
 | Area | Pages |
 | --- | --- |
-| Public | `/`, `/about`, `/centres` (filters, recommendations, compare), `/centres/[slug]`, `/centres/compare`, `/experts/[id]` |
+| Public | `/`, `/about`, `/centres` (filters, recommendations, compare), `/centres/[slug]`, `/centres/compare`, `/experts` (search experts by topic, centre, price and format, with each one's next open time), `/experts/[id]` (pick a day and time and request in one panel; visitors can see times before signing up) |
 | Sign-in | `/register`, `/login`, `/forgot-password`, `/reset-password`, `/auth/callback`, `/invite/[token]` |
 | Founder | `/dashboard`, `/venture` (+ `/venture/edit/[step]`, `/venture/team`, `/venture/financials`), `/applications`, `/applications/[id]`, `/messages`, `/bookings`, `/notifications`, `/account` |
 | Centre staff | `/manage/[slug]` with applications, startups, messages, mentors and experts, bookings and profile |
@@ -82,8 +82,8 @@ Local demo accounts (password `Udyam-local-123`), created by `supabase/seed/02_l
 | Email | Role |
 | --- | --- |
 | `admin@udyamsetu.local` | Master admin |
-| `staff@udyamsetu.local` | Staff at Tawi Innovation Hub (Sample) |
-| `expert@udyamsetu.local` | Linked to the expert "Dr. Asha Verma (Sample)" |
+| `staff@udyamsetu.local` | Staff at IIM Jammu Incubation Centre |
+| `expert@udyamsetu.local` | Linked to the local demo expert "Dr. Asha Verma (Local demo)" |
 | `founder@udyamsetu.local` | Founder with a complete venture profile |
 | `newfounder@udyamsetu.local` | Founder who has only registered |
 
@@ -107,11 +107,14 @@ project: the local demo accounts must not exist there.
 
 ## Seed data
 
-- `supabase/seed/01_sample_centres.sql`: six **fictional** sample centres with mentors, experts and two weeks of
-  availability. Every one is marked `is_sample` and labelled "Sample listing" on the site. None is a real
-  organisation and none claims any official affiliation. Safe to run more than once; the master admin can suspend,
-  remove or delete them once real centres are added. Nothing in the app depends on a fixed number of centres.
-- `supabase/seed/02_local_accounts.sql`: **local development only.** Demo accounts with a shared password.
+- `supabase/seed/01_mission_yuva_centres.sql`: the 12 incubation centres named in public reports as part of the
+  Mission YUVA incubation network in J&K (IIM Jammu, IIT Jammu, SKUAST Jammu, SMVDU, BGSBU, Central University of
+  Jammu, University of Jammu, SKUAST Kashmir, University of Kashmir, IUST, NIFT Srinagar, NIT Srinagar). Each stores
+  its source (`source_label`, `source_url`) and shows it on its page. Only public facts are filled in; programmes,
+  sectors, stages and mentors are left for each centre's staff, and applications stay closed until they open them.
+  Listing a centre doesn't claim any partnership. Safe to run more than once.
+- `supabase/seed/02_local_accounts.sql`: **local development only.** Demo accounts with a shared password, plus
+  fictional "(Local demo)" experts with open times and focus areas on three centres, so booking can be tried.
 
 ## The first master admin
 

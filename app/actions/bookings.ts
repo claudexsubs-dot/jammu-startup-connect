@@ -9,18 +9,40 @@ import type { SessionFormat } from "@/lib/types";
 import { formValues, text, type FormState } from "./types";
 
 // A founder asks for a session. It stays PENDING until the expert confirms. No payment is taken.
+// A founder without a venture profile can name their startup in the same step: a draft profile
+// is created first, so booking never sends them away to fill in a long form.
 export async function requestBooking(expertId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   const values = formValues(formData);
   const slotId = text(formData, "slot_id");
   const format = text(formData, "format") as SessionFormat;
   const note = text(formData, "note").trim();
+  const quickStart = text(formData, "quick_start") === "1";
+  const startupName = text(formData, "startup_name").trim();
+  const stageId = text(formData, "stage_id").trim();
   const fieldErrors: Record<string, string> = {};
   if (!slotId) fieldErrors.slot_id = "Choose a time";
   if (format !== "online" && format !== "in_person") fieldErrors.format = "Choose online or in person";
   if (note.length > 2000) fieldErrors.note = "Must be 2000 characters or fewer";
+  if (quickStart && (startupName.length < 2 || startupName.length > 120)) fieldErrors.startup_name = "Enter your startup's name (2 to 120 characters)";
+  if (quickStart && stageId && !/^\d+$/.test(stageId)) fieldErrors.stage_id = "Choose a stage";
   if (Object.keys(fieldErrors).length) return { fieldErrors, values };
 
-  const { supabase } = await requireUser(`/experts/${expertId}`);
+  const { supabase, user } = await requireUser(`/experts/${expertId}`);
+
+  if (quickStart) {
+    const { data: existing } = await supabase.from("startups").select("id").eq("owner_id", user.id).maybeSingle();
+    if (!existing) {
+      const { error } = await supabase
+        .from("startups")
+        .insert({ owner_id: user.id, name: startupName, stage_id: stageId ? Number(stageId) : null })
+        .select("id")
+        .single();
+      if (error) return { error: friendlyError(error) ?? undefined, values };
+      revalidatePath("/venture", "layout");
+      revalidatePath("/dashboard");
+    }
+  }
+
   const { data, error } = await supabase.rpc("request_booking", { p_slot_id: slotId, p_format: format, p_note: note || undefined });
   if (error || !data) {
     revalidatePath(`/experts/${expertId}`);
@@ -28,12 +50,13 @@ export async function requestBooking(expertId: string, _prev: FormState, formDat
     return {
       error:
         code === "slot_unavailable"
-          ? "Someone else just requested that time, so it's no longer available. The list below shows the times that are still open."
+          ? "Someone else just requested that time, so it's no longer available. Please pick another time."
           : (friendlyError(error) ?? undefined),
       values: code === "slot_unavailable" ? { ...values, slot_id: "" } : values,
     };
   }
   revalidatePath("/bookings");
+  revalidatePath("/experts");
   redirect(`/bookings/${data}?notice=booking-requested`);
 }
 

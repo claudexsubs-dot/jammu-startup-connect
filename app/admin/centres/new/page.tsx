@@ -24,6 +24,8 @@ export default async function NewCentrePage() {
       <CentreProfileForm action={createCentre} centre={null} taxonomy={taxonomy} selected={{ stage_ids: [], sector_ids: [], service_ids: [] }} submitLabel="Create centre">
         <Field name="slug" label="Web address" hint="Lowercase letters, numbers and dashes. Leave blank to make one from the name. Can't be changed by centre staff." />
         <Checkbox name="is_sample" label="This is a sample (fictional) listing" hint="Sample listings are labelled on every page." />
+        <Field name="source_label" label="Listing source" defaultValue={undefined} hint="Optional. Where this centre is publicly listed, for example a report naming it as a Mission YUVA incubation centre. Shown on the centre page." />
+        <Field name="source_url" label="Source link" type="url" defaultValue={undefined} placeholder="https://" />
       </CentreProfileForm>
     </section>
   );

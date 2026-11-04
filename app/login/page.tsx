@@ -8,7 +8,8 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { next } = await searchParams;
   return (
     <section className="auth-card">
-      <h1>Log in</h1>
+      <h1>Welcome back</h1>
+      <p className="muted">Log in to book sessions, track applications and read messages.</p>
       <LoginForm next={safeNext(next)} />
     </section>
   );

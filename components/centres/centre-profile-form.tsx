@@ -1,6 +1,6 @@
 import { ActionForm, Checkbox, CheckboxGroup, Field, Select, SubmitButton, TextArea } from "@/components/form";
 import type { FormState } from "@/app/actions/types";
-import { DISTRICTS } from "@/lib/options";
+import { CENTRE_DISTRICTS } from "@/lib/options";
 import type { Taxonomy } from "@/lib/taxonomy";
 import { toOptions } from "@/lib/taxonomy";
 import type { Row } from "@/lib/types";
@@ -49,7 +49,7 @@ export function CentreProfileForm({
       </fieldset>
       <fieldset className="stack">
         <legend className="h3">Location and contact</legend>
-        <Select name="district" label="District" options={DISTRICTS.map((d) => ({ value: d, label: d }))} defaultValue={centre?.district} />
+        <Select name="district" label="District" options={CENTRE_DISTRICTS.map((d) => ({ value: d, label: d }))} defaultValue={centre?.district} />
         <Field name="city" label="City or town" defaultValue={centre?.city} />
         <Field name="address" label="Address" defaultValue={centre?.address} />
         <Field name="website" label="Website" type="url" defaultValue={centre?.website} placeholder="https://" />

@@ -79,6 +79,15 @@ export const SESSION_FORMATS: Option<SessionFormat>[] = [
 // Districts of the Jammu division, plus an option for founders based elsewhere.
 export const DISTRICTS = ["Jammu", "Samba", "Kathua", "Udhampur", "Reasi", "Doda", "Kishtwar", "Ramban", "Poonch", "Rajouri", "Other"] as const;
 
+// Where centres can be: the whole of Jammu and Kashmir, since founders may apply anywhere.
+export const KASHMIR_DISTRICTS = ["Srinagar", "Budgam", "Ganderbal", "Pulwama", "Shopian", "Anantnag", "Kulgam", "Baramulla", "Bandipora", "Kupwara"] as const;
+export const CENTRE_DISTRICTS = [...DISTRICTS.filter((d) => d !== "Other"), ...KASHMIR_DISTRICTS] as const;
+
+export function regionOf(district: string | null | undefined) {
+  if (!district) return null;
+  return (KASHMIR_DISTRICTS as readonly string[]).includes(district) ? "Kashmir division" : "Jammu division";
+}
+
 export function labelFor<T extends string>(list: Option<T>[], value: T | null | undefined) {
   return list.find((item) => item.value === value)?.label ?? "";
 }

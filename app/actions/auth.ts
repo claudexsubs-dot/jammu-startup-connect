@@ -18,9 +18,11 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
     district: formData.get("district") ?? "",
     city: formData.get("city") ?? "",
     domicile: formData.get("domicile") === "on",
-    consent: formData.get("consent") === "on",
+    // One tick covers both the domicile declaration and the profile-sharing consent.
+    consent: formData.get("domicile") === "on",
   });
   if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error), values };
+  const next = safeNext(formData.get("next"), "/venture");
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -37,7 +39,7 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
         domicile_declared: "true",
         consent_given: "true",
       },
-      emailRedirectTo: `${env.siteUrl}/auth/callback?next=/venture`,
+      emailRedirectTo: `${env.siteUrl}/auth/callback?next=${encodeURIComponent(next)}`,
     },
   });
 
@@ -46,12 +48,12 @@ export async function register(_prev: FormState, formData: FormData): Promise<Fo
   // With email confirmation on, Supabase returns no session until the link is clicked.
   if (!data.session) {
     return {
-      success: `Almost done. We sent a confirmation link to ${parsed.data.email}. Open it to activate your account, then complete your venture profile.`,
+      success: `Almost done. We sent a confirmation link to ${parsed.data.email}. Open it to activate your account and you'll be taken straight back to where you were.`,
     };
   }
 
   revalidatePath("/", "layout");
-  redirect("/venture");
+  redirect(next);
 }
 
 // Registration for people invited as centre staff or experts. They don't get a founder profile.

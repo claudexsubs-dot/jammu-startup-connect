@@ -52,3 +52,13 @@ export async function saveCentreLinks(
   return null;
 }
 
+
+// Where a listing comes from. Only the master admin's forms include these fields.
+export function readCentreSource(formData: FormData): { fields: { source_label?: string | null; source_url?: string | null }; error: Record<string, string> | null } {
+  if (!formData.has("source_label")) return { fields: {}, error: null };
+  const label = String(formData.get("source_label") ?? "").trim();
+  const url = String(formData.get("source_url") ?? "").trim();
+  if (label.length > 200) return { fields: {}, error: { source_label: "Must be 200 characters or fewer" } };
+  if (url && (!/^https?:\/\//i.test(url) || url.length > 500)) return { fields: {}, error: { source_url: "Enter a full web address starting with https://" } };
+  return { fields: { source_label: label || null, source_url: url || null }, error: null };
+}

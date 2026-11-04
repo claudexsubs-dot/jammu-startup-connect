@@ -28,18 +28,20 @@ test("a founder registers, builds a profile, applies, and answers the centre's r
   await page.getByLabel("Full name").fill("Ritu Sharma");
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(DEMO_PASSWORD);
-  await page.getByLabel(/^Phone/).fill("9000000123");
-  await page.getByLabel("District").selectOption("Udhampur");
-  await page.getByLabel(/I declare that I am domiciled in Jammu/).check();
-  await page.getByLabel(/I agree that incubation centres/).check();
-  await page.getByRole("button", { name: "Create founder account" }).click();
+  await page.getByLabel("Your district").selectOption("Udhampur");
+  await page.getByLabel(/I'm domiciled in Jammu/).check();
+  await page.getByRole("button", { name: "Create free account" }).click();
   await expect(page).toHaveURL(/\/venture/);
 
   // Trying to apply before the profile is complete explains what's missing.
-  await page.goto("/centres/tawi-innovation-hub-sample/apply");
+  await page.goto("/centres/iim-jammu/apply");
   await expect(page.getByRole("link", { name: "Create your venture profile" })).toBeVisible();
 
-  await page.goto("/venture/edit/basics");
+  // Phone is asked for later, in "About you", rather than at sign-up.
+  await page.goto("/venture/edit/founder");
+  await page.getByRole("textbox", { name: "Phone" }).fill("9000000123");
+  await page.getByRole("button", { name: "Save and continue" }).click();
+  await expect(page).toHaveURL(/\/venture\/edit\/basics/);
   await page.getByLabel("Startup name").fill(startupName);
   await page.getByLabel("Short description").fill("Guided heritage walks with local tea makers.");
   await page.getByLabel("Stage", { exact: true }).selectOption({ label: "Early stage" });
@@ -65,21 +67,21 @@ test("a founder registers, builds a profile, applies, and answers the centre's r
   await page.goto("/centres");
   await expect(page.getByText(/Recommended because this centre/).first()).toBeVisible();
 
-  await page.goto("/centres/tawi-innovation-hub-sample/apply");
+  await page.goto("/centres/iim-jammu/apply");
   await page.getByRole("button", { name: "Start application" }).click();
   await expect(page).toHaveURL(/\/applications\/[0-9a-f-]{36}/);
   const applicationUrl = page.url();
-  await page.getByLabel(/Why Tawi Innovation Hub/).fill("We need help with pricing and partnerships.");
+  await page.getByLabel(/Why IIM Jammu Incubation Centre/).fill("We need help with pricing and partnerships.");
   await page.getByRole("button", { name: "Submit application" }).click();
   await expect(page.getByText("Your application was submitted.")).toBeVisible();
 
   // Applying again resumes the same application instead of creating a duplicate.
-  await page.goto("/centres/tawi-innovation-hub-sample/apply");
+  await page.goto("/centres/iim-jammu/apply");
   await expect(page).toHaveURL(applicationUrl);
 
   // Centre staff review it and ask for more information.
   const staff = await asUser(browser, "staff@udyamsetu.local");
-  await staff.page.goto("/manage/tawi-innovation-hub-sample/applications");
+  await staff.page.goto("/manage/iim-jammu/applications");
   await staff.page.getByRole("link", { name: startupName }).click();
   await expect(staff.page.getByText("Guided heritage walks with local tea makers.")).toBeVisible();
   await staff.page.getByLabel("Change status to").selectOption({ label: "More information needed" });
@@ -104,7 +106,7 @@ test("a founder registers, builds a profile, applies, and answers the centre's r
   await staff.close();
 
   await page.goto("/messages");
-  await page.getByRole("link", { name: /Tawi Innovation Hub/ }).first().click();
+  await page.getByRole("link", { name: /IIM Jammu Incubation Centre/ }).first().click();
   await expect(page.getByText("Could you visit us next week?")).toBeVisible();
   await page.getByLabel("Reply").fill("Yes, Tuesday works.");
   await page.getByRole("button", { name: "Send", exact: true }).click();
@@ -116,13 +118,15 @@ test("a paid session stays pending until the expert sends payment instructions a
   const founder = await newFounder(await taxonomyIds(admin.client), { name: "Imran" });
 
   await logIn(page, founder.email);
-  await page.goto("/centres/tawi-innovation-hub-sample");
-  await page.getByRole("link", { name: "Dr. Asha Verma (Sample)" }).click();
-  await expect(page.getByText(/UdyamSetu doesn.t take payments/)).toBeVisible();
-  await page.getByRole("group", { name: /Choose a time/ }).getByRole("radio").last().check();
-  await page.getByRole("radio", { name: /^Online/ }).check();
+  await page.goto("/experts");
+  await page.getByRole("link", { name: "Dr. Asha Verma (Local demo)" }).click();
+  await expect(page.getByText(/UdyamSetu never takes payments/).first()).toBeVisible();
+  await page.locator(".day-chip").nth(1).click();
+  await page.locator(".time-chip").last().click();
+  await page.locator(".segmented label", { hasText: "Online" }).click();
+  await page.getByText("Add a note for the expert (optional)").click();
   await page.getByLabel("What would you like to discuss?").fill("Choosing a cloud provider.");
-  await page.getByRole("button", { name: "Send request" }).click();
+  await page.getByRole("button", { name: /^Request / }).click();
   await expect(page).toHaveURL(/\/bookings\/[0-9a-f-]{36}/);
   await expect(page.getByText("Pending").first()).toBeVisible();
   const bookingUrl = page.url();
@@ -131,12 +135,12 @@ test("a paid session stays pending until the expert sends payment instructions a
   await expert.page.goto("/expert");
   await expert.page.getByRole("link", { name: "Imran's venture" }).first().click();
   await expect(expert.page.getByText("Choosing a cloud provider.").first()).toBeVisible();
-  await expert.page.getByLabel("How the founder should pay you").fill("Pay at the Tawi Hub front desk before the session.");
+  await expert.page.getByLabel("How the founder should pay you").fill("Pay at the incubation centre front desk before the session.");
   await expert.page.getByRole("button", { name: "Send instructions" }).click();
   await expect(expert.page.getByText("The booking was updated")).toBeVisible();
 
   await page.goto(bookingUrl);
-  await expect(page.getByText("Pay at the Tawi Hub front desk before the session.").first()).toBeVisible();
+  await expect(page.getByText("Pay at the incubation centre front desk before the session.").first()).toBeVisible();
   await expect(page.getByText("How to join")).toHaveCount(0);
 
   await expert.page.getByLabel("Meeting link").fill("https://meet.example.com/asha-imran");
@@ -157,19 +161,19 @@ test("a paid session stays pending until the expert sends payment instructions a
 
 test("people can't open other roles' pages, and the master admin can see the attempt", async ({ page, browser }) => {
   await logIn(page, "founder@udyamsetu.local");
-  for (const path of ["/admin", "/manage/tawi-innovation-hub-sample", "/expert"]) {
+  for (const path of ["/admin", "/manage/iim-jammu", "/expert"]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { name: "You don't have access to that page" })).toBeVisible();
   }
 
   const staff = await asUser(browser, "staff@udyamsetu.local");
-  await staff.page.goto("/manage/kathua-agri-ventures-lab-sample/applications");
+  await staff.page.goto("/manage/iit-jammu/applications");
   await expect(staff.page.getByRole("heading", { name: "You don't have access to that page" })).toBeVisible();
   await staff.close();
 
   const admin = await asUser(browser, "admin@udyamsetu.local");
   await admin.page.goto("/admin/audit?group=access");
-  await expect(admin.page.getByText("Page: /manage/kathua-agri-ventures-lab-sample/applications").first()).toBeVisible();
+  await expect(admin.page.getByText("Page: /manage/iit-jammu/applications").first()).toBeVisible();
   await admin.close();
 });
 

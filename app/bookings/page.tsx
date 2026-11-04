@@ -18,8 +18,8 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
       <Notice code={notice} />
       <div className="section-head">
         <h1>My mentor and expert sessions</h1>
-        <Link href="/centres" className="btn btn-secondary">
-          Find mentors
+        <Link href="/experts" className="btn btn-primary">
+          Book a new session
         </Link>
       </div>
       <p className="muted">
@@ -30,7 +30,12 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
       {current.length ? (
         <BookingTable bookings={current} basePath="/bookings" show="expert" caption="Requests and upcoming sessions" />
       ) : (
-        <p className="empty">Nothing pending or coming up. Open a centre&apos;s page to see its mentors and experts.</p>
+        <div className="empty">
+          <p>Nothing pending or coming up.</p>
+          <Link href="/experts" className="btn btn-primary">
+            Find a mentor or expert
+          </Link>
+        </div>
       )}
       {past.length ? (
         <>

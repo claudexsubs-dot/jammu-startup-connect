@@ -3,7 +3,8 @@ import Link from "next/link";
 import { CentreCard } from "@/components/centres/centre-card";
 import { getViewer } from "@/lib/auth";
 import { filterCentres, hasActiveFilters, loadActiveCentres, parseFilters, type CentreSummary } from "@/lib/directory";
-import { DISTRICTS } from "@/lib/options";
+import { Icons } from "@/components/icons";
+import { CENTRE_DISTRICTS } from "@/lib/options";
 import { recommendCentres, type Recommendation } from "@/lib/recommend";
 import { loadTaxonomy, nameById } from "@/lib/taxonomy";
 
@@ -61,13 +62,17 @@ export default async function CentresPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <div className="section-head">
-        <h1>Incubation centres</h1>
-      </div>
-      <p className="lead">
-        Browse every centre on UdyamSetu. You can apply to as many as you like, and each centre decides on its own
-        applications.
-      </p>
+      <header className="page-head">
+        <p className="eyebrow">
+          <Icons.building /> Mission YUVA incubation network
+        </p>
+        <h1>Incubation centres in Jammu and Kashmir</h1>
+        <p className="lead">
+          The centres named in public reports as part of the Mission YUVA incubation network. Apply to as many as you like
+          with one venture profile; each centre decides on its own applications.{" "}
+          <Link href="/about#centres">Where this list comes from</Link>
+        </p>
+      </header>
 
       {user && hasVenture && recommendations ? (
         <section aria-labelledby="recommended" className="recommended">
@@ -94,16 +99,23 @@ export default async function CentresPage({ searchParams }: { searchParams: Prom
         </p>
       ) : !user ? (
         <p className="alert alert-info">
-          <Link href="/register">Register as a founder</Link> to get recommendations and apply.
+          <Link href="/register?next=/centres">Create a free account</Link> to see which centres fit your startup, with reasons, and apply.
         </p>
       ) : null}
 
       <h2 id="all">All centres</h2>
-      <form className="filters" method="get" aria-label="Filter centres">
-        <label>
-          Search
-          <input type="search" name="q" defaultValue={filters.q ?? ""} placeholder="Centre name or city" />
-        </label>
+      <form method="get" aria-label="Filter centres">
+        <div className="search-bar">
+          <label className="search-input">
+            <span className="visually-hidden">Search centres</span>
+            <Icons.search />
+            <input type="search" name="q" defaultValue={filters.q ?? ""} placeholder="Search by centre, university or city" />
+          </label>
+          <button type="submit" className="btn btn-primary btn-large">
+            Search
+          </button>
+        </div>
+      <div className="filters">
         <label>
           Stage supported
           <select name="stage" defaultValue={filters.stage ?? ""}>
@@ -140,8 +152,8 @@ export default async function CentresPage({ searchParams }: { searchParams: Prom
         <label>
           Location
           <select name="district" defaultValue={filters.district ?? ""}>
-            <option value="">Any district</option>
-            {DISTRICTS.filter((d) => d !== "Other").map((d) => (
+            <option value="">Anywhere in J&amp;K</option>
+            {CENTRE_DISTRICTS.map((d) => (
               <option key={d} value={d}>
                 {d}
               </option>
@@ -164,6 +176,7 @@ export default async function CentresPage({ searchParams }: { searchParams: Prom
           </button>
           {filtering ? <Link href="/centres">Clear filters</Link> : null}
         </div>
+      </div>
       </form>
 
       {loadFailed ? (
@@ -177,11 +190,13 @@ export default async function CentresPage({ searchParams }: { searchParams: Prom
               No centres match all of these filters. Try removing one or two. Here are all {centres.length} centres instead.
             </p>
           ) : (
-            <p className="muted" role="status">
-              Showing {shown.length} of {centres.length} centres.
+            <p className="result-meta" role="status">
+              <span>
+                Showing {shown.length} of {centres.length} centres
+              </span>
             </p>
           )}
-          <form method="get" action="/centres/compare" aria-label="Compare centres">
+          <form method="get" action="/centres/compare" aria-label="Compare centres" className="compare-form">
             <ul className="card-grid">
               {shown.map((centre) => (
                 <CentreCard key={centre.id} centre={centre} stageNames={stageNames} sectorNames={sectorNames} compare />
