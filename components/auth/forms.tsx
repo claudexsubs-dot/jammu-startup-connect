@@ -1,67 +1,85 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
-import { login, register, requestPasswordReset, updatePassword } from "@/app/actions/auth";
-import { initialFormState } from "@/app/actions/types";
-import { Field, FormMessage, SubmitButton } from "@/components/form";
+import { login, register, registerInvitee, requestPasswordReset, updatePassword } from "@/app/actions/auth";
+import { ActionForm, Checkbox, Field, Select, SubmitButton } from "@/components/form";
+import { DISTRICTS } from "@/lib/options";
 
 export function RegisterForm() {
-  const [state, action] = useActionState(register, initialFormState);
-  if (state.success) return <FormMessage state={state} />;
   return (
-    <form action={action} className="stack" noValidate>
-      <FormMessage state={state} />
-      <Field name="fullName" label="Full name" state={state} required autoComplete="name" />
-      <Field name="email" label="Email" type="email" state={state} required autoComplete="email" />
-      <Field name="password" label="Password" type="password" state={state} required autoComplete="new-password" hint="At least 8 characters." />
-      <SubmitButton pendingText="Creating account…">Create account</SubmitButton>
+    <ActionForm action={register} hideSuccessForm>
+      <Field name="fullName" label="Full name" required autoComplete="name" />
+      <Field name="email" label="Email" type="email" required autoComplete="email" />
+      <Field name="password" label="Password" type="password" required autoComplete="new-password" hint="At least 8 characters." />
+      <div className="grid-2">
+        <Field name="phone" label="Phone" type="tel" autoComplete="tel" inputMode="tel" hint="Kept private unless you choose to share it." />
+        <Select name="district" label="District" required options={DISTRICTS.map((d) => ({ value: d, label: d }))} />
+      </div>
+      <Field name="city" label="City or town" autoComplete="address-level2" />
+      <fieldset>
+        <legend>Declaration</legend>
+        <Checkbox
+          name="domicile"
+          label="I declare that I am domiciled in Jammu (the Jammu division of Jammu and Kashmir)."
+          hint="This is a self-declaration. We don't ask for documents now. Proof may be requested later by a funding body, outside UdyamSetu."
+        />
+        <Checkbox
+          name="consent"
+          label="I agree that incubation centres on UdyamSetu can see my startup profile. My email and phone stay private unless I choose to share them."
+        />
+      </fieldset>
+      <SubmitButton pendingText="Creating account…">Create founder account</SubmitButton>
       <p className="muted">
-        Already registered? <Link href="/login">Log in</Link>
+        Already registered? <Link href="/login">Log in</Link>. Invited as centre staff or an expert? Use the link in your
+        invitation.
       </p>
-    </form>
+    </ActionForm>
+  );
+}
+
+export function InviteeRegisterForm({ token, email }: { token: string; email?: string }) {
+  return (
+    <ActionForm action={registerInvitee.bind(null, token)} hideSuccessForm>
+      <Field name="fullName" label="Full name" required autoComplete="name" />
+      <Field name="email" label="Email" type="email" required autoComplete="email" defaultValue={email} hint="Use the address the invitation was sent to." />
+      <Field name="password" label="Password" type="password" required autoComplete="new-password" hint="At least 8 characters." />
+      <SubmitButton pendingText="Creating account…">Create account</SubmitButton>
+    </ActionForm>
   );
 }
 
 export function LoginForm({ next }: { next?: string }) {
-  const [state, action] = useActionState(login, initialFormState);
   return (
-    <form action={action} className="stack" noValidate>
-      <FormMessage state={state} />
+    <ActionForm action={login}>
       <input type="hidden" name="next" value={next ?? "/dashboard"} />
-      <Field name="email" label="Email" type="email" state={state} required autoComplete="email" />
-      <Field name="password" label="Password" type="password" state={state} required autoComplete="current-password" />
+      <Field name="email" label="Email" type="email" required autoComplete="email" />
+      <Field name="password" label="Password" type="password" required autoComplete="current-password" />
       <SubmitButton pendingText="Logging in…">Log in</SubmitButton>
       <p className="muted">
-        <Link href="/forgot-password">Forgot your password?</Link> · New here? <Link href="/register">Create an account</Link>
+        <Link href="/forgot-password">Forgot your password?</Link> · New founder? <Link href="/register">Create an account</Link>
       </p>
-    </form>
+    </ActionForm>
   );
 }
 
 export function ForgotPasswordForm() {
-  const [state, action] = useActionState(requestPasswordReset, initialFormState);
-  if (state.success) return <FormMessage state={state} />;
   return (
-    <form action={action} className="stack" noValidate>
-      <FormMessage state={state} />
-      <Field name="email" label="Email" type="email" state={state} required autoComplete="email" />
+    <ActionForm action={requestPasswordReset} hideSuccessForm>
+      <Field name="email" label="Email" type="email" required autoComplete="email" />
       <SubmitButton pendingText="Sending…">Send reset link</SubmitButton>
       <p className="muted">
         Remembered it? <Link href="/login">Log in</Link>
       </p>
-    </form>
+    </ActionForm>
   );
 }
 
 export function ResetPasswordForm() {
-  const [state, action] = useActionState(updatePassword, initialFormState);
   return (
-    <form action={action} className="stack" noValidate>
-      <FormMessage state={state} />
-      <Field name="password" label="New password" type="password" state={state} required autoComplete="new-password" hint="At least 8 characters." />
-      <Field name="confirm" label="Type it again" type="password" state={state} required autoComplete="new-password" />
+    <ActionForm action={updatePassword}>
+      <Field name="password" label="New password" type="password" required autoComplete="new-password" hint="At least 8 characters." />
+      <Field name="confirm" label="Type it again" type="password" required autoComplete="new-password" />
       <SubmitButton pendingText="Saving…">Save new password</SubmitButton>
-    </form>
+    </ActionForm>
   );
 }

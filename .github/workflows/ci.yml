@@ -10,15 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NEXT_TELEMETRY_DISABLED: 1
-      # Public values: the same ones every visitor's browser receives. Never put the secret key here.
-      NEXT_PUBLIC_SUPABASE_URL: https://yhbeantyuxslcsgdiujh.supabase.co
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ZmyFTcbxlxDvRmBOpjYXYQ_pPS19EJL
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
-      # Test accounts for the full journey test. Stored as secrets.
-      E2E_OWNER_EMAIL: ${{ secrets.E2E_OWNER_EMAIL }}
-      E2E_OWNER_PASSWORD: ${{ secrets.E2E_OWNER_PASSWORD }}
-      E2E_OTHER_EMAIL: ${{ secrets.E2E_OTHER_EMAIL }}
-      E2E_OTHER_PASSWORD: ${{ secrets.E2E_OTHER_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -27,9 +19,23 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+
+      # Tests run against a throwaway Supabase inside the CI machine, never the real project.
+      # `supabase start` applies every migration and loads supabase/seed (sample centres and demo accounts).
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.1
+      - name: Start local Supabase
+        run: supabase start
+      - name: Point the app at local Supabase
+        run: |
+          eval "$(supabase status -o env)"
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY" >> "$GITHUB_ENV"
+
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - run: npm test
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

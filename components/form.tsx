@@ -1,12 +1,62 @@
 "use client";
 
+import { createContext, useActionState, useContext } from "react";
 import { useFormStatus } from "react-dom";
-import type { FormState } from "@/app/actions/types";
+import { initialFormState, type FormState } from "@/app/actions/types";
 
-export function SubmitButton({ children, pendingText, variant = "primary" }: { children: React.ReactNode; pendingText?: string; variant?: "primary" | "secondary" | "danger" }) {
+const FormStateContext = createContext<FormState>(initialFormState);
+
+function useFieldState(state?: FormState) {
+  const fromContext = useContext(FormStateContext);
+  return state ?? fromContext;
+}
+
+type Action = (state: FormState, formData: FormData) => Promise<FormState>;
+
+// A form wired to a server action. Fields inside it show that action's errors.
+export function ActionForm({
+  action,
+  children,
+  className = "stack",
+  hideSuccessForm = false,
+  id,
+}: {
+  action: Action;
+  children: React.ReactNode;
+  className?: string;
+  hideSuccessForm?: boolean;
+  id?: string;
+}) {
+  const [state, formAction] = useActionState(action, initialFormState);
+  if (hideSuccessForm && state.success) return <FormMessage state={state} />;
+  return (
+    <FormStateContext.Provider value={state}>
+      <form action={formAction} className={className} noValidate id={id}>
+        <FormMessage state={state} />
+        {children}
+      </form>
+    </FormStateContext.Provider>
+  );
+}
+
+export function SubmitButton({
+  children,
+  pendingText,
+  variant = "primary",
+  small = false,
+  name,
+  value,
+}: {
+  children: React.ReactNode;
+  pendingText?: string;
+  variant?: "primary" | "secondary" | "danger";
+  small?: boolean;
+  name?: string;
+  value?: string;
+}) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" className={`btn btn-${variant}`} disabled={pending} aria-busy={pending}>
+    <button type="submit" className={`btn btn-${variant}${small ? " btn-small" : ""}`} disabled={pending} aria-busy={pending} name={name} value={value}>
       {pending ? (pendingText ?? "Saving…") : children}
     </button>
   );
@@ -15,9 +65,16 @@ export function SubmitButton({ children, pendingText, variant = "primary" }: { c
 export function FormMessage({ state }: { state: FormState }) {
   if (state.error) {
     return (
-      <p className="alert alert-error" role="alert">
-        {state.error}
-      </p>
+      <div className="alert alert-error" role="alert">
+        <p>{state.error}</p>
+        {state.details?.length ? (
+          <ul>
+            {state.details.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
     );
   }
   if (state.success) {
@@ -33,7 +90,7 @@ export function FormMessage({ state }: { state: FormState }) {
 type FieldProps = {
   name: string;
   label: string;
-  state: FormState;
+  state?: FormState;
   hint?: string;
   defaultValue?: string | number | null;
   required?: boolean;
@@ -42,23 +99,47 @@ type FieldProps = {
   placeholder?: string;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   max?: string;
+  min?: string;
+  step?: string;
 };
 
-export function Field({ name, label, state, hint, defaultValue, required, type = "text", autoComplete, placeholder, inputMode, max }: FieldProps) {
+function describedBy(name: string, hint?: string, error?: string) {
+  return [hint ? `${name}-hint` : null, error ? `${name}-error` : null].filter(Boolean).join(" ") || undefined;
+}
+
+function Label({ name, label, required }: { name: string; label: string; required?: boolean }) {
+  return (
+    <label htmlFor={name}>
+      {label}
+      {required ? null : <span className="optional"> (optional)</span>}
+    </label>
+  );
+}
+
+function Hint({ name, hint }: { name: string; hint?: string }) {
+  return hint ? (
+    <p className="hint" id={`${name}-hint`}>
+      {hint}
+    </p>
+  ) : null;
+}
+
+function ErrorText({ name, error }: { name: string; error?: string }) {
+  return error ? (
+    <p className="field-error" id={`${name}-error`}>
+      {error}
+    </p>
+  ) : null;
+}
+
+export function Field({ name, label, state: stateProp, hint, defaultValue, required, type = "text", autoComplete, placeholder, inputMode, max, min, step }: FieldProps) {
+  const state = useFieldState(stateProp);
   const error = state.fieldErrors?.[name];
   const value = state.values?.[name] ?? (defaultValue === null || defaultValue === undefined ? "" : String(defaultValue));
-  const describedBy = [hint ? `${name}-hint` : null, error ? `${name}-error` : null].filter(Boolean).join(" ") || undefined;
   return (
     <div className="field">
-      <label htmlFor={name}>
-        {label}
-        {required ? null : <span className="optional"> (optional)</span>}
-      </label>
-      {hint ? (
-        <p className="hint" id={`${name}-hint`}>
-          {hint}
-        </p>
-      ) : null}
+      <Label name={name} label={label} required={required} />
+      <Hint name={name} hint={hint} />
       <input
         id={name}
         name={name}
@@ -70,32 +151,24 @@ export function Field({ name, label, state, hint, defaultValue, required, type =
         placeholder={placeholder}
         inputMode={inputMode}
         max={max}
+        min={min}
+        step={step}
         aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy}
+        aria-describedby={describedBy(name, hint, error)}
       />
-      {error ? (
-        <p className="field-error" id={`${name}-error`}>
-          {error}
-        </p>
-      ) : null}
+      <ErrorText name={name} error={error} />
     </div>
   );
 }
 
-export function TextArea({ name, label, state, hint, defaultValue, required, rows = 4 }: Omit<FieldProps, "type"> & { rows?: number }) {
+export function TextArea({ name, label, state: stateProp, hint, defaultValue, required, rows = 4 }: Omit<FieldProps, "type"> & { rows?: number }) {
+  const state = useFieldState(stateProp);
   const error = state.fieldErrors?.[name];
   const value = state.values?.[name] ?? defaultValue ?? "";
   return (
     <div className="field">
-      <label htmlFor={name}>
-        {label}
-        {required ? null : <span className="optional"> (optional)</span>}
-      </label>
-      {hint ? (
-        <p className="hint" id={`${name}-hint`}>
-          {hint}
-        </p>
-      ) : null}
+      <Label name={name} label={label} required={required} />
+      <Hint name={name} hint={hint} />
       <textarea
         id={name}
         name={name}
@@ -104,13 +177,9 @@ export function TextArea({ name, label, state, hint, defaultValue, required, row
         key={String(value)}
         required={required}
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${name}-error` : hint ? `${name}-hint` : undefined}
+        aria-describedby={describedBy(name, hint, error)}
       />
-      {error ? (
-        <p className="field-error" id={`${name}-error`}>
-          {error}
-        </p>
-      ) : null}
+      <ErrorText name={name} error={error} />
     </div>
   );
 }
@@ -118,7 +187,7 @@ export function TextArea({ name, label, state, hint, defaultValue, required, row
 export function Select({
   name,
   label,
-  state,
+  state: stateProp,
   options,
   defaultValue,
   required,
@@ -127,26 +196,20 @@ export function Select({
 }: {
   name: string;
   label: string;
-  state: FormState;
+  state?: FormState;
   options: { value: string; label: string }[];
   defaultValue?: string | number | null;
   required?: boolean;
-  placeholder?: string;
+  placeholder?: string | null;
   hint?: string;
 }) {
+  const state = useFieldState(stateProp);
   const error = state.fieldErrors?.[name];
   const value = state.values?.[name] ?? (defaultValue === null || defaultValue === undefined ? "" : String(defaultValue));
   return (
     <div className="field">
-      <label htmlFor={name}>
-        {label}
-        {required ? null : <span className="optional"> (optional)</span>}
-      </label>
-      {hint ? (
-        <p className="hint" id={`${name}-hint`}>
-          {hint}
-        </p>
-      ) : null}
+      <Label name={name} label={label} required={required} />
+      <Hint name={name} hint={hint} />
       <select
         id={name}
         name={name}
@@ -154,33 +217,138 @@ export function Select({
         key={value}
         required={required}
         aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${name}-error` : hint ? `${name}-hint` : undefined}
+        aria-describedby={describedBy(name, hint, error)}
       >
-        <option value="">{placeholder}</option>
+        {placeholder === null ? null : <option value="">{placeholder}</option>}
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
       </select>
-      {error ? (
-        <p className="field-error" id={`${name}-error`}>
-          {error}
-        </p>
-      ) : null}
+      <ErrorText name={name} error={error} />
     </div>
   );
 }
 
-export function Checkbox({ name, label, state, defaultChecked, hint }: { name: string; label: string; state: FormState; defaultChecked?: boolean; hint?: string }) {
+export function Checkbox({
+  name,
+  label,
+  state: stateProp,
+  defaultChecked,
+  hint,
+}: {
+  name: string;
+  label: React.ReactNode;
+  state?: FormState;
+  defaultChecked?: boolean;
+  hint?: string;
+}) {
+  const state = useFieldState(stateProp);
+  const error = state.fieldErrors?.[name];
   const checked = state.values ? state.values[name] === "on" : Boolean(defaultChecked);
   return (
-    <div className="field field-checkbox">
-      <input id={name} name={name} type="checkbox" defaultChecked={checked} key={String(checked)} />
-      <label htmlFor={name}>
-        {label}
-        {hint ? <span className="hint-inline"> {hint}</span> : null}
-      </label>
+    <div className="field">
+      <div className="field-checkbox">
+        <input
+          id={name}
+          name={name}
+          type="checkbox"
+          defaultChecked={checked}
+          key={String(checked)}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy(name, hint, error)}
+        />
+        <label htmlFor={name}>{label}</label>
+      </div>
+      <Hint name={name} hint={hint} />
+      <ErrorText name={name} error={error} />
     </div>
+  );
+}
+
+// A set of checkboxes that submits every ticked value under one name.
+export function CheckboxGroup({
+  name,
+  legend,
+  options,
+  defaultValues = [],
+  state: stateProp,
+  hint,
+  required,
+}: {
+  name: string;
+  legend: string;
+  options: { value: string; label: string; description?: string | null }[];
+  defaultValues?: string[];
+  state?: FormState;
+  hint?: string;
+  required?: boolean;
+}) {
+  const state = useFieldState(stateProp);
+  const error = state.fieldErrors?.[name];
+  const selected = state.multi?.[name] ?? defaultValues;
+  return (
+    <fieldset className="checkbox-group" aria-describedby={describedBy(name, hint, error)}>
+      <legend>
+        {legend}
+        {required ? null : <span className="optional"> (optional)</span>}
+      </legend>
+      <Hint name={name} hint={hint} />
+      <div className="checkbox-grid">
+        {options.map((option) => {
+          const id = `${name}-${option.value}`;
+          return (
+            <div className="field-checkbox" key={option.value}>
+              <input id={id} type="checkbox" name={name} value={option.value} defaultChecked={selected.includes(option.value)} key={`${id}-${selected.join(",")}`} />
+              <label htmlFor={id}>
+                {option.label}
+                {option.description ? <span className="hint-inline"> {option.description}</span> : null}
+              </label>
+            </div>
+          );
+        })}
+      </div>
+      <ErrorText name={name} error={error} />
+    </fieldset>
+  );
+}
+
+export function RadioGroup({
+  name,
+  legend,
+  options,
+  defaultValue,
+  state: stateProp,
+  hint,
+}: {
+  name: string;
+  legend: string;
+  options: { value: string; label: string; description?: string }[];
+  defaultValue?: string | null;
+  state?: FormState;
+  hint?: string;
+}) {
+  const state = useFieldState(stateProp);
+  const error = state.fieldErrors?.[name];
+  const value = state.values?.[name] ?? defaultValue ?? "";
+  return (
+    <fieldset className="checkbox-group" aria-describedby={describedBy(name, hint, error)}>
+      <legend>{legend}</legend>
+      <Hint name={name} hint={hint} />
+      {options.map((option) => {
+        const id = `${name}-${option.value}`;
+        return (
+          <div className="field-checkbox" key={option.value}>
+            <input id={id} type="radio" name={name} value={option.value} defaultChecked={value === option.value} key={`${id}-${value}`} />
+            <label htmlFor={id}>
+              {option.label}
+              {option.description ? <span className="hint-inline"> {option.description}</span> : null}
+            </label>
+          </div>
+        );
+      })}
+      <ErrorText name={name} error={error} />
+    </fieldset>
   );
 }
